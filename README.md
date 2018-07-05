@@ -1,2 +1,2 @@
 ## java-base-example
-Java base example.
+Java base examples.
