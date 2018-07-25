@@ -2,9 +2,9 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 
     <modelVersion>4.0.0</modelVersion>
-    <groupId>io.biteenew</groupId>
+    <groupId>io.biteeniu</groupId>
     <artifactId>java-base-example</artifactId>
-    <version>v1.0.0</version>
+    <version>1.0.0</version>
     <packaging>pom</packaging>
 
     <name>java-base-example</name>
@@ -21,6 +21,8 @@
     <modules>
         <module>base-common</module>
         <module>delay-queue-example</module>
+        <module>redis-distributed-lock</module>
+        <module>redis-delay-queue</module>
     </modules>
 
 </project>

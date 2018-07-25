@@ -1,10 +1,10 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-    <artifactId>delay-queue-example</artifactId>
+    <artifactId>redis-distributed-lock</artifactId>
     <version>1.0.0</version>
     <packaging>jar</packaging>
-    <name>delay-queue-example</name>
+    <name>redis-distributed-lock</name>
     <url>http://maven.apache.org</url>
 
     <parent>
@@ -19,6 +19,11 @@
             <artifactId>base-common</artifactId>
             <version>1.0.0</version>
         </dependency>
+        <dependency>
+            <groupId>redis.clients</groupId>
+            <artifactId>jedis</artifactId>
+            <version>2.9.0</version>
+        </dependency>
     </dependencies>
 
     <build>
@@ -29,7 +34,7 @@
                 <configuration>
                     <archive>
                         <manifest>
-                            <mainClass>io.biteeniu.java.delay.queue.Launcher</mainClass>
+                            <mainClass>io.biteeniu.redis.lock.Launcher</mainClass>
                         </manifest>
                     </archive>
                     <descriptorRefs>

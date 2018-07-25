@@ -1,4 +1,4 @@
-package io.biteenew.java.delay.queue;
+package io.biteeniu.java.delay.queue;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
