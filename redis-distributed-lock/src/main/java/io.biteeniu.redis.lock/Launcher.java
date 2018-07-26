@@ -26,9 +26,15 @@ public class Launcher {
         JedisPool jedisPool = new JedisPool(poolConfig, "10.200.0.206");
 
         // 测试获取分布式锁——错误的示例1
-        testLockWithWrongWay1(jedisPool.getResource());
+        // testLockWithWrongWay1(jedisPool.getResource());
+        // 测试获取分布式锁——正确的姿势——测试所的可重入性
+        testReentrantLockWithCorrectWay(jedisPool.getResource());
     }
 
+    /**
+     * 获取分布式锁——错误的示例1的测试方法
+     * @param jedis Jedis
+     */
     private static void testLockWithWrongWay1(Jedis jedis) {
         String key = "distributed-lock-key";  // 加锁的key
         String clientId = UUID.randomUUID().toString();  // 客户端ID
@@ -42,6 +48,26 @@ public class Launcher {
                 LOGGER.warn("Client[{}] get lock failed.", clientId);
             }
             sleep(1000);  // 客户端每隔1秒尝试获取一次锁
+        }
+    }
+
+    /**
+     * 获取分布式锁——正确的姿势——测试所的可重入性
+     * @param jedis Jedis
+     */
+    private static void testReentrantLockWithCorrectWay(Jedis jedis) {
+        String key = "distributed-lock-key";  // 加锁的key
+        String clientId = UUID.randomUUID().toString();  // 客户端ID
+        int expireTime = 5;  // 锁的超时时间设置为5秒
+        LOGGER.info("Client[{}] now try to get lock.", clientId);
+        while (true) {
+            boolean lockResult = RedisLockHelper.lockWithCorrectWay(jedis, key, clientId, expireTime);
+            if (lockResult) {
+                LOGGER.info("Client[{}] get lock success.", clientId);
+            } else {
+                LOGGER.warn("Client[{}] get lock failed.", clientId);
+            }
+            sleep(2000);  // 同一个客户端每隔2秒尝试获取一次锁
         }
     }
 
