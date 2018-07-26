@@ -20,6 +20,8 @@ public final class RedisLockHelper {
     private static final String NX = "NX";  // 只在键不存在时，才对键进行设置操作。SET key value NX 效果等同于SETNX key value。
     private static final String XX = "XX";  // 只在键已经存在时，才对键进行设置操作。
 
+    private RedisLockHelper() {}
+
     /**
      * 获取分布式锁——错误的示例1
      * @param jedis Jedis实例
