@@ -77,7 +77,7 @@ public final class RedisLockHelper {
      * @param expireTime 锁的超时时间，单位秒——超过此时间未解锁则Redis会删除锁
      * @return true-加锁成功；false-加锁失败
      */
-    public static boolean lockWithCorrectWay(Jedis jedis, String key, int expireTime) {
+    public static boolean lock(Jedis jedis, String key, int expireTime) {
         return LOCK_SUCCESS.equals(jedis.set(key, getThreadLocalClientId(), NX, PX, expireTime*1000L));
     }
 
@@ -107,13 +107,17 @@ public final class RedisLockHelper {
      * @param jedis Jedis
      * @param key key
      */
-    public static boolean unlockWithCorrectWay(Jedis jedis, String key) {
+    public static boolean unlock(Jedis jedis, String key) {
         String clientId = getThreadLocalClientId();
         String script = "if redis.call('get', KEYS[1]) == ARGV[1] then return redis.call('del', KEYS[1]) else return 0 end";
         Object result = jedis.eval(script, Collections.singletonList(key), Collections.singletonList(clientId));
         return UNLOCK_SUCCESS.equals(result);
     }
 
+    /**
+     * 为每个线程设置一个Thread-Local的clientId
+     * @return clientId
+     */
     public static String getThreadLocalClientId() {
         String clientId = uuid.get();
         if (clientId == null) {
