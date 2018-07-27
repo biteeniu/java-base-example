@@ -6,8 +6,6 @@ import org.slf4j.LoggerFactory;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 
-import java.util.UUID;
-
 /**
  * 程序启动类
  * @author luzhanghong
@@ -26,9 +24,9 @@ public class Launcher {
         JedisPool jedisPool = new JedisPool(poolConfig, "10.200.0.206");
 
         // 测试获取分布式锁——错误的示例1
-        // testLockWithWrongWay1(jedisPool.getResource());
-        // 测试获取分布式锁——正确的姿势——测试所的可重入性
-        testReentrantLockWithCorrectWay(jedisPool.getResource());
+        testLockWithWrongWay1(jedisPool.getResource());
+        // 测试获取分布式锁——正确的姿势——锁的可重入性测试
+        // testReentrantLockWithCorrectWay(jedisPool.getResource());
     }
 
     /**
@@ -37,11 +35,11 @@ public class Launcher {
      */
     private static void testLockWithWrongWay1(Jedis jedis) {
         String key = "distributed-lock-key";  // 加锁的key
-        String clientId = UUID.randomUUID().toString();  // 客户端ID
+        String clientId = RedisLockHelper.getThreadLocalClientId();  // 客户端ID
         int expireTime = 20;  // 锁的超时时间设置为20秒
         LOGGER.info("Client[{}] now try to get lock.", clientId);
         while (true) {
-            boolean lockResult = RedisLockHelper.lockWithWrongWay1(jedis, key, clientId, expireTime);
+            boolean lockResult = RedisLockHelper.lockWithWrongWay1(jedis, key, expireTime);
             if (lockResult) {
                 LOGGER.info("Client[{}] get lock success.", clientId);
             } else {
@@ -52,16 +50,16 @@ public class Launcher {
     }
 
     /**
-     * 获取分布式锁——正确的姿势——测试所的可重入性
+     * 获取分布式锁——正确的姿势——锁的可重入性测试
      * @param jedis Jedis
      */
     private static void testReentrantLockWithCorrectWay(Jedis jedis) {
         String key = "distributed-lock-key";  // 加锁的key
-        String clientId = UUID.randomUUID().toString();  // 客户端ID
+        String clientId = RedisLockHelper.getThreadLocalClientId();  // 客户端ID
         int expireTime = 5;  // 锁的超时时间设置为5秒
         LOGGER.info("Client[{}] now try to get lock.", clientId);
         while (true) {
-            boolean lockResult = RedisLockHelper.lockWithCorrectWay(jedis, key, clientId, expireTime);
+            boolean lockResult = RedisLockHelper.lockWithCorrectWay(jedis, key, expireTime);
             if (lockResult) {
                 LOGGER.info("Client[{}] get lock success.", clientId);
             } else {

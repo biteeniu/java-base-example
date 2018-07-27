@@ -5,6 +5,7 @@ import org.slf4j.LoggerFactory;
 import redis.clients.jedis.Jedis;
 
 import java.util.Collections;
+import java.util.UUID;
 
 /**
  * @author luzhanghong
@@ -19,6 +20,7 @@ public final class RedisLockHelper {
     private static final String PX = "PX";  // 设置键的过期时间为millisecond毫秒。SET key value PX millisecond效果等同于PSETEX key millisecond value。
     private static final String NX = "NX";  // 只在键不存在时，才对键进行设置操作。SET key value NX 效果等同于SETNX key value。
     private static final String XX = "XX";  // 只在键已经存在时，才对键进行设置操作。
+    private static final ThreadLocal<String> uuid = new ThreadLocal<>();  // 将客户端的ID（ClientId）设置成Thread-Local变量，保证每个线程都有自己独享的唯一ClientId
 
     private RedisLockHelper() {}
 
@@ -26,11 +28,11 @@ public final class RedisLockHelper {
      * 获取分布式锁——错误的示例1
      * @param jedis Jedis实例
      * @param key 用key来当锁，因为key是唯一的
-     * @param clientId 执行加锁操作的客户端（或线程）的ID，必须保证唯一性
      * @param expireTime 锁的超时时间，单位秒——超过此时间未解锁则Redis会删除锁
      * @return true-加锁成功；false-加锁失败
      */
-    public static boolean lockWithWrongWay1(Jedis jedis, String key, String clientId, int expireTime) {
+    public static boolean lockWithWrongWay1(Jedis jedis, String key, int expireTime) {
+        String clientId = getThreadLocalClientId();
         Long result = jedis.setnx(key, clientId);
         if (result == 1) {
             LOGGER.info("Client[{}] execute SETNX ok.", clientId);
@@ -72,12 +74,11 @@ public final class RedisLockHelper {
      * 获取分布式锁——正确的姿势
      * @param jedis Jedis实例
      * @param key 用key来当锁，因为key是唯一的
-     * @param clientId 执行加锁操作的客户端（或线程）的ID，必须保证唯一性
      * @param expireTime 锁的超时时间，单位秒——超过此时间未解锁则Redis会删除锁
      * @return true-加锁成功；false-加锁失败
      */
-    public static boolean lockWithCorrectWay(Jedis jedis, String key, String clientId, int expireTime) {
-        return LOCK_SUCCESS.equals(jedis.set(key, clientId, NX, PX, expireTime*1000L));
+    public static boolean lockWithCorrectWay(Jedis jedis, String key, int expireTime) {
+        return LOCK_SUCCESS.equals(jedis.set(key, getThreadLocalClientId(), NX, PX, expireTime*1000L));
     }
 
     /**
@@ -93,9 +94,9 @@ public final class RedisLockHelper {
      * 解锁——错误的示例2
      * @param jedis Jedis
      * @param key key
-     * @param clientId 客户端ID，具备唯一性
      */
-    public static void unlockWithWrongWay2(Jedis jedis, String key, String clientId) {
+    public static void unlockWithWrongWay2(Jedis jedis, String key) {
+        String clientId = getThreadLocalClientId();
         if (clientId.equals(jedis.get(key))) {
             jedis.del(key);
         }
@@ -105,12 +106,21 @@ public final class RedisLockHelper {
      * 解锁——正确的姿势
      * @param jedis Jedis
      * @param key key
-     * @param clientId 客户端ID，具备唯一性
      */
-    public static boolean unlockWithCorrectWay(Jedis jedis, String key, String clientId) {
+    public static boolean unlockWithCorrectWay(Jedis jedis, String key) {
+        String clientId = getThreadLocalClientId();
         String script = "if redis.call('get', KEYS[1]) == ARGV[1] then return redis.call('del', KEYS[1]) else return 0 end";
         Object result = jedis.eval(script, Collections.singletonList(key), Collections.singletonList(clientId));
         return UNLOCK_SUCCESS.equals(result);
+    }
+
+    public static String getThreadLocalClientId() {
+        String clientId = uuid.get();
+        if (clientId == null) {
+            clientId = UUID.randomUUID().toString();
+            uuid.set(clientId);
+        }
+        return clientId;
     }
 
     /**
