@@ -23,6 +23,7 @@
         <module>delay-queue-example</module>
         <module>redis-distributed-lock</module>
         <module>redis-delay-queue</module>
+        <module>java-thread-pool</module>
     </modules>
 
 </project>

@@ -1,8 +1,6 @@
 package io.biteeniu.redis.delay.queue;
 
-import com.google.common.cache.CacheBuilder;
-import com.google.common.cache.CacheLoader;
-import com.google.common.cache.LoadingCache;
+import io.biteeniu.redis.delay.queue.utils.RedisHelper;
 import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -10,11 +8,9 @@ import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.Transaction;
 
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
-import java.util.concurrent.TimeUnit;
 
 /**
  * 程序启动类
@@ -43,45 +39,23 @@ public class Launcher {
         consumerThread.start();
 
         Map<String, String> jobPool = new HashMap<>();
-        Map<String, Double> jobBuckets = new HashMap<>();
+        Map<String, Double> jobBucket = new HashMap<>();
         for (int i = 1; i <= 10; i++) {
             int delay = 10;// + RANDOM.nextInt(21);
             Long expiredAt = System.currentTimeMillis() + (delay * 1000L);
-            Job job = new Job("send-email" + i, delay, "biteeniu@gmail.com");
+            Job job = new Job("send-email" + i, delay, 1, "biteeniu@gmail.com");
             jobPool.put(job.getId(), job.toJsonString());
-            jobBuckets.put(job.getId(), Double.valueOf(expiredAt));
+            jobBucket.put(job.getId(), Double.valueOf(expiredAt));
             LOGGER.info("Producer publish job: {}, delay: {} seconds.", job.getId(), job.getDelay());
         }
 
         Jedis jedis = jedisPool.getResource();
-        jedis.getSet("", "");
-        jedis.eval("", Collections.singletonList("hello"), Collections.singletonList("hello"));
-        jedis.set("", "", "", "", 1);
         jedis.hmset(JOB_POOL, jobPool);
         Transaction transaction = jedis.multi();
-        transaction.hmset(JOB_POOL, jobPool);
-        transaction.zadd(JOB_BUCKET, jobBuckets);
+        transaction.hmset(RedisHelper.JOB_POOL, jobPool);
+        transaction.zadd(RedisHelper.JOB_DELAY_BUCKET, jobBucket);
         transaction.exec();
         jedis.close();
-
-        CacheLoader<String, String> loader = new CacheLoader<String, String>() {
-            @Override
-            public String load(String key) {
-                return key.toUpperCase();
-            }
-        };
-        LoadingCache<String, String> cache = CacheBuilder.newBuilder()
-                .expireAfterWrite(10, TimeUnit.SECONDS)
-                .removalListener(new Listener())
-                .build(loader);
-//        for (int i = 1; i <= 10; i++) {
-//            cache.put(String.valueOf(i), String.valueOf(i));
-//        }
-        cache.put("test", "haha");
-        cache.refresh("test");
-        cache.asMap();
-        sleep(20000);
-        System.out.println(cache.getUnchecked("test"));
     }
 
     private static void sleep(long millis) {
